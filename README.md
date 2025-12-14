@@ -1,16 +1,17 @@
 # Memoria NotePro
 
-A lightweight, futuristic notes app built using **HTML + CSS + JavaScript** (no frameworks).  
-Runs fully in the browser and saves data locally for quick access.
-THIS IS A BUILD IN PROGRESS.
+A lightweight, futuristic notes Website built using **HTML + CSS + JavaScript** (no frameworks).  
+Runs fully in any browser and saves data locally for quick access.
 
-## Features
-- Study notes with subjects
-- Extra notes (permanent)
+**THIS IS A BUILD IN PROGRESS.**
+
+## Built In Features:
+- Study notes with subjects **(Testing Phase)**
+- Extra notes (permanent using **Local Storage**)
 - Extra notes editor
 - Search + subject filtering
-- Edit / delete notes
-- Command console (help, time, notes, extra, search, subject, export, import)
+- Create / Edit / delete notes
+- Command console (TESTING PHASE)
 - Export / import JSON backup
 
 ## Live Website
@@ -19,12 +20,15 @@ https://firefoxway.github.io/HTML-NotePro/
 ## How to Run Locally
 1. Download this repository
 2. Open `index.html` in any browser
+(OR)
+1. Save The Code To A Text Document and name it as yourrnameoranytext.html
+2. Run It And Enjoy!
 
 ## Data Storage
-Notes are stored in your browser using **localStorage**.  
 They stay on the same device and browser you used.
 
 ## Author
 **Umesh Chandra Karthikeya**
+**DarkShadow**
 
 **Gowri Shankar**
