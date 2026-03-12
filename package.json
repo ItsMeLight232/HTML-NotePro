@@ -1,0 +1,13 @@
+{
+  "name": "memoria-notepro",
+  "version": "1.1.0",
+  "description": "Offline-first NotePro GUI desktop app",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "start:web": "python3 -m http.server 4173"
+  },
+  "devDependencies": {
+    "electron": "^31.0.2"
+  }
+}

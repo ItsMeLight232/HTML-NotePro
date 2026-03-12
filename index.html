@@ -3,6 +3,8 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta name="theme-color" content="#070b1a" />
+<link rel="manifest" href="manifest.webmanifest" />
 <title>Memoria NotePro — Vault + Background Settings + Matrix Rain</title>
 
 <style>
@@ -48,12 +50,56 @@ a{color:inherit}
   z-index:1;
   padding:16px;
   display:grid;
-  grid-template-columns:2fr 1fr;
+  grid-template-columns:250px 1fr;
   gap:14px;
   max-width:1250px;
   margin:0 auto;
 }
 @media (max-width: 980px){ .shell{grid-template-columns:1fr} }
+
+.sidebar{
+  position:sticky;
+  top:16px;
+  height:fit-content;
+}
+
+.workspace{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:14px;
+}
+
+.workspace .hero{grid-column:1/-1}
+
+@media (max-width: 980px){
+  .workspace{grid-template-columns:1fr}
+  .sidebar{position:relative;top:auto}
+}
+
+.sideTitle{font-size:13px;color:var(--muted);margin-bottom:8px}
+.quickNav{display:flex;flex-direction:column;gap:8px}
+.navBtn{
+  text-align:left;
+  padding:10px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.04);
+  color:var(--text);
+  cursor:pointer;
+}
+.navBtn:hover{background:rgba(139,92,246,.22)}
+
+.toolGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+@media (max-width:700px){.toolGrid{grid-template-columns:1fr}}
+.toolBtn{
+  width:100%;text-align:left;padding:10px;border-radius:12px;cursor:pointer;
+  border:1px solid rgba(255,255,255,.08);color:var(--text);
+  background:rgba(255,255,255,.05);
+}
+.toolBtn:hover{filter:brightness(1.1)}
+.toolBtn.safe{background:rgba(34,197,94,.18)}
+.toolBtn.warn{background:rgba(245,158,11,.16)}
+.toolBtn.danger{background:rgba(239,68,68,.15)}
 
 .panel{
   background:var(--panel);
@@ -189,8 +235,26 @@ textarea{resize:none;width:100%}
 
 <div class="shell">
 
+  <aside class="panel sidebar">
+    <div class="title">
+      <h2>Workspace</h2>
+      <span class="badge">GUI</span>
+    </div>
+    <div class="sideTitle">Quick navigation</div>
+    <div class="quickNav">
+      <button class="navBtn" onclick="document.getElementById('studynotes').scrollIntoView({behavior:'smooth'})">Study notes</button>
+      <button class="navBtn" onclick="document.getElementById('extraPanel').scrollIntoView({behavior:'smooth'})">Extra notes</button>
+      <button class="navBtn" onclick="document.getElementById('vaultPanel').scrollIntoView({behavior:'smooth'})">File vault</button>
+      <button class="navBtn" onclick="document.getElementById('bgPanel').scrollIntoView({behavior:'smooth'})">Background settings</button>
+    </div>
+    <hr>
+    <div class="mini">Designed as a dashboard UI with grouped tools and quick actions.</div>
+  </aside>
+
+  <main class="workspace">
+
   <!-- Header -->
-  <section class="panel">
+  <section class="panel hero">
     <div class="title">
       <div>
         <h1>Memoria</h1>
@@ -225,7 +289,7 @@ textarea{resize:none;width:100%}
     </div>
 
     <div class="mini" style="margin-top:8px">
-      Commands: <b>help</b>, <b>vault</b>, <b>bg</b>, <b>search</b>, <b>subject</b>, <b>export</b>, <b>import</b>
+      Commands: <b>help</b>, <b>vault</b>, <b>bg</b>, <b>recovery</b>, <b>search</b>, <b>subject</b>, <b>export</b>, <b>import</b>
     </div>
   </section>
 
@@ -362,14 +426,28 @@ textarea{resize:none;width:100%}
     </div>
   </section>
 
-  <!-- Static -->
-  <section class="panel">
+  <!-- Recovery Tools -->
+  <section class="panel" id="recoveryPanel">
     <div class="title">
-      <h2>NT Support</h2>
-      <div class="mini">Tools</div>
+      <h2>Recovery Tools</h2>
+      <div class="mini">Offline-safe maintenance</div>
     </div>
-    <div class="mini">Boot Fix • Registry Restore • Device Manager</div>
+
+    <div class="toolGrid">
+      <button class="toolBtn safe" id="btnCreateSnapshot">Create Recovery Snapshot</button>
+      <button class="toolBtn" id="btnRestoreSnapshot">Restore Recovery Snapshot</button>
+      <button class="toolBtn" id="btnRunDiagnostics">Run Local Diagnostics</button>
+      <button class="toolBtn warn" id="btnToggleSafeMode">Toggle Safe Mode</button>
+      <button class="toolBtn" id="btnBackupAll">Export Full Backup</button>
+      <button class="toolBtn danger" id="btnFactoryReset">Factory Reset (Local)</button>
+    </div>
+
+    <div class="mini" style="margin-top:10px">
+      Works fully offline: tools use localStorage + IndexedDB and do not require internet.
+    </div>
   </section>
+
+  </main>
 
 </div>
 
@@ -1050,6 +1128,115 @@ function importNotes(){
   input.click();
 }
 
+
+/* ========= Recovery Tools ========= */
+function collectBackupPayload(){
+  return { version:6, exportedAt:new Date().toISOString(), notes, extra, settings, safeMode: document.body.classList.contains('safe-mode') };
+}
+
+function downloadJSON(filename, payload){
+  const blob = new Blob([JSON.stringify(payload,null,2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href=url;
+  a.download=filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function createRecoverySnapshot(){
+  const payload = collectBackupPayload();
+  localStorage.setItem('memoria_recovery_snapshot_v1', JSON.stringify(payload));
+  toast('Snapshot Saved', 'Local recovery snapshot created.');
+}
+
+async function restoreRecoverySnapshot(){
+  const raw = localStorage.getItem('memoria_recovery_snapshot_v1');
+  if(!raw){ toast('Missing','No recovery snapshot found.'); return; }
+  try{
+    const data = JSON.parse(raw);
+    if(Array.isArray(data.notes)) notes = data.notes;
+    if(Array.isArray(data.extra)) extra = data.extra;
+    settings = {...defaultBg, ...(data.settings||{})};
+
+    saveLS(DB.notes, notes);
+    saveLS(DB.extra, extra);
+    saveLS(DB.settings, settings);
+
+    $('#bgMode').value = settings.mode || 'preset';
+    $('#bgPreset').value = settings.preset || 'nebula';
+    renderBgControls();
+    await applyBackground();
+
+    setSafeMode(!!data.safeMode);
+    toast('Recovered', 'Snapshot restored successfully.');
+    render();
+  }catch{
+    toast('Error','Recovery snapshot is corrupted.');
+  }
+}
+
+function runDiagnostics(){
+  const diag = {
+    notes: notes.length,
+    extra: extra.length,
+    vaultFiles: vaultFiles.length,
+    hasSnapshot: !!localStorage.getItem('memoria_recovery_snapshot_v1'),
+    bgMode: settings.mode,
+    matrixEnabled: settings.mode==='preset' && settings.preset==='matrix',
+    storageEstimate: (navigator.storage && navigator.storage.estimate) ? 'supported' : 'unsupported'
+  };
+  cmdPrint(`<span class="mini">Diagnostics:</span><br>${escapeHTML(JSON.stringify(diag, null, 2)).replaceAll('\n','<br>')}`);
+  toast('Diagnostics', 'Report printed in command console.');
+}
+
+function setSafeMode(enabled){
+  document.body.classList.toggle('safe-mode', !!enabled);
+  if(enabled){
+    matrix.stop();
+    document.documentElement.style.setProperty('--panel','rgba(8,10,18,.98)');
+    document.documentElement.style.setProperty('--shadow','0 0 0 1px rgba(255,255,255,.04),0 8px 20px rgba(0,0,0,.45)');
+  }else{
+    document.documentElement.style.removeProperty('--panel');
+    document.documentElement.style.removeProperty('--shadow');
+    if(settings.mode==='preset' && settings.preset==='matrix'){
+      matrix.start({ fps: settings.matrixFps, color: settings.matrixColor });
+    }
+  }
+}
+
+function toggleSafeMode(){
+  const on = !document.body.classList.contains('safe-mode');
+  setSafeMode(on);
+  toast('Safe Mode', on ? 'Enabled for stability.' : 'Disabled.');
+}
+
+function exportFullBackup(){
+  const payload = collectBackupPayload();
+  downloadJSON(`memoria_full_backup_${new Date().toISOString().slice(0,10)}.json`, payload);
+  toast('Exported','Full local backup downloaded.');
+}
+
+async function factoryResetLocal(){
+  if(!confirm('Factory reset all local notes, extra notes, settings, vault files and assets?')) return;
+  notes = [];
+  extra = [];
+  settings = {...defaultBg};
+  saveLS(DB.notes, notes);
+  saveLS(DB.extra, extra);
+  saveLS(DB.settings, settings);
+  localStorage.removeItem('memoria_recovery_snapshot_v1');
+  await idb.clear('files');
+  await idb.clear('assets');
+  $('#bgMode').value=settings.mode;
+  $('#bgPreset').value=settings.preset;
+  renderBgControls();
+  await applyBackground();
+  await loadVault();
+  render();
+  toast('Factory Reset','Local data was cleared.');
+}
+
 /* ========= Vault ========= */
 function fileIcon(type, name){
   const n=(name||'').toLowerCase();
@@ -1249,7 +1436,9 @@ function cmdHelp(){
     <br>• <b>clear</b> (clear console)
     <br>• <b>search &lt;text&gt;</b>
     <br>• <b>subject &lt;name|all&gt;</b>
-    <br>• <b>export</b> / <b>import</b>`);
+    <br>• <b>export</b> / <b>import</b>
+    <br>• <b>diag</b> / <b>snapshot</b> / <b>recover</b>
+    <br>• <b>recovery</b> (scroll to tools)`);
 }
 function runCmd(){
   const i = $('#cmdIn');
@@ -1267,6 +1456,7 @@ function runCmd(){
   else if(head==='extra') $('#extraPanel').scrollIntoView({behavior:'smooth'});
   else if(head==='vault') $('#vaultPanel').scrollIntoView({behavior:'smooth'});
   else if(head==='bg') $('#bgPanel').scrollIntoView({behavior:'smooth'});
+  else if(head==='recovery') $('#recoveryPanel').scrollIntoView({behavior:'smooth'});
   else if(head==='clear') $('#cmdOut').innerHTML = '';
   else if(head==='search'){
     $('#search').value = rest;
@@ -1287,6 +1477,9 @@ function runCmd(){
   }
   else if(head==='export') exportNotes();
   else if(head==='import') importNotes();
+  else if(head==='diag') runDiagnostics();
+  else if(head==='snapshot') createRecoverySnapshot();
+  else if(head==='recover') restoreRecoverySnapshot();
   else cmdPrint(`<span class="mini">Unknown command. Type <b>help</b>.</span>`);
 
   i.value='';
@@ -1316,6 +1509,12 @@ $('#btnClearSearch').addEventListener('click', ()=>{
 
 $('#btnExport').addEventListener('click', exportNotes);
 $('#btnImport').addEventListener('click', importNotes);
+$('#btnCreateSnapshot').addEventListener('click', createRecoverySnapshot);
+$('#btnRestoreSnapshot').addEventListener('click', restoreRecoverySnapshot);
+$('#btnRunDiagnostics').addEventListener('click', runDiagnostics);
+$('#btnToggleSafeMode').addEventListener('click', toggleSafeMode);
+$('#btnBackupAll').addEventListener('click', exportFullBackup);
+$('#btnFactoryReset').addEventListener('click', factoryResetLocal);
 
 $('#btnSaveFile').addEventListener('click', saveSelectedFile);
 $('#btnClearVault').addEventListener('click', clearVault);
@@ -1390,6 +1589,14 @@ $('#modal').addEventListener('click', (e)=>{ if(e.target.id==='modal') closeModa
   vaultFiles.sort((a,b)=> (b.savedAt||0) - (a.savedAt||0));
 
   render();
+
+  if('serviceWorker' in navigator){
+    try{
+      await navigator.serviceWorker.register('./sw.js');
+    }catch{
+      // ignore registration errors in restricted environments
+    }
+  }
 })();
 </script>
 </body>

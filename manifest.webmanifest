@@ -1,0 +1,10 @@
+{
+  "name": "Memoria NotePro",
+  "short_name": "Memoria",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#070b1a",
+  "theme_color": "#070b1a",
+  "description": "Offline-first notes and recovery toolkit",
+  "icons": []
+}
