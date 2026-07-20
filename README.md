@@ -1,16 +1,19 @@
-# Memoria NotePro
+# Memoria NotePro (PRE ALPHA)
 
 A lightweight, futuristic notes app built using **HTML + CSS + JavaScript** (no frameworks).  
 Runs fully in the browser and saves data locally for quick access.
 
 ## Features
-- Study notes with subjects
 - Extra notes (permanent)
 - Extra notes editor
 - Search + subject filtering
 - Edit / delete notes
-- Command console (help, time, notes, extra, search, subject, export, import)
+- Command console (IN PROGRESS)
 - Export / import JSON backup
+- Music
+- Local Account
+- Add Friends (IN PROGRESS)
+- Chatting
 
 ## Live Website
 https://firefoxway.github.io/HTML-NotePro/
